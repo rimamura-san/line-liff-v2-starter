@@ -772,7 +772,7 @@
   optionalDependencies:
     axios "^1.7.4"
 
-"@line/liff@^2.27.0":
+"@line/liff@^2.27.2":
   version "2.27.2"
   resolved "https://registry.npmjs.org/@line/liff/-/liff-2.27.2.tgz#ffa1d46c6c0285c20dc7bde566d9f64006375588"
   integrity sha512-l03EMOa2Xahct1voTbik4zTp5yOcYivb5p4MQWwnRIYsoRcnwFHEhT7KwvX/JdtmZbL3wLfBENGtm0BAtA1t9w==
