@@ -18,6 +18,7 @@ const commonConfig = {
       }
     ],
     port: 3000,
+    allowedHosts: "all",
   },
 
   resolve: {
