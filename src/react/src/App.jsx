@@ -1,59 +1,95 @@
+// src/react/src/App.jsx
 import React, { useEffect, useState } from "react";
-// npm i @line/liff
 import liff from "@line/liff";
 
-/**
- * LINE Mini App / LIFF スターター（ログイン + プロフィール + おみくじ + シェア）
- * -------------------------------------------------------------
- * 使い方（Netlify/Vite/NextでもOK）
- * 1) LINE Developersでチャネルを作成 → LIFFアプリを追加し、LIFF IDを取得
- * 2) Netlifyの環境変数に LIFF_ID を設定（例：VITE_LIFF_ID または NEXT_PUBLIC_LIFF_ID）
- * 3) サイトの公開URLをLIFFのエンドポイントURLに設定
- * 4) デプロイ
- */
+// ▼ Viteは VITE_* だけが注入されます
+const LIFF_ID = import.meta.env.VITE_LIFF_ID || 2008303223-rXdkgozK;
 
-const LIFF_ID = import.meta?.env?.VITE_LIFF_ID || 2008303223-rXdkgozK
+// --- helpers ---
+const mask = (s) => (s ? `${s.slice(0, 8)}…${s.slice(-6)}` : "");
+function parseJwtSafe(t) {
+  try {
+    const base64 = t.split(".")[1];
+    const padded = base64.replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(padded)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
 
 export default function App() {
-//   const [ready, setReady] = useState(false);
+  // --- state（重複宣言しないでこの1ブロックだけ） ---
+  const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [profile, setProfile] = useState(null);
   const [omikuji, setOmikuji] = useState(null);
   const [error, setError] = useState("");
+  const [caps, setCaps] = useState({ inClient: false, canShare: false });
+  const [tokens, setTokens] = useState({ idToken: "", accessToken: "" });
+  const [claims, setClaims] = useState(null);
 
-const [ready, setReady] = useState(false);
-const [caps, setCaps] = useState({ inClient: false, canShare: false });
-  
+  // --- init ---
   useEffect(() => {
     (async () => {
       try {
         console.log("LIFF init start:", LIFF_ID);
         await liff.init({ liffId: LIFF_ID });
+
+        // init 後にだけ liff.* を触る
         setReady(true);
         setCaps({
           inClient: liff.isInClient(),
           canShare: liff.isApiAvailable("shareTargetPicker"),
         });
+
         if (liff.isLoggedIn()) {
           setLoggedIn(true);
+
+          // トークン類
+          const idt = liff.getIDToken() || "";
+          const at = liff.getAccessToken() || "";
+          setTokens({ idToken: idt, accessToken: at });
+          setClaims(idt ? parseJwtSafe(idt) : null);
+
           await fetchProfile();
         }
       } catch (e) {
-        console.error(e);
+        console.error("LIFF init error:", e);
         setError("LIFFの初期化に失敗しました。LIFF IDと公開URLを確認してください。");
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- actions ---
   const login = () => {
-    if (!liff.isLoggedIn()) liff.login();
+    try {
+      if (!liff.isLoggedIn()) liff.login();
+    } catch (e) {
+      console.error(e);
+      setError("ログインに失敗しました。");
+    }
   };
 
   const logout = () => {
-    if (liff.isLoggedIn()) {
-      liff.logout();
-      setLoggedIn(false);
-      setProfile(null);
+    try {
+      if (liff.isLoggedIn()) {
+        liff.logout();
+        setLoggedIn(false);
+        setProfile(null);
+        setTokens({ idToken: "", accessToken: "" });
+        setClaims(null);
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error(e);
+      setError("ログアウトに失敗しました。");
     }
   };
 
@@ -63,7 +99,7 @@ const [caps, setCaps] = useState({ inClient: false, canShare: false });
       setProfile(p);
     } catch (e) {
       console.error(e);
-      setError("プロフィール取得に失敗しました");
+      setError("プロフィール取得に失敗しました。");
     }
   }
 
@@ -80,86 +116,112 @@ const [caps, setCaps] = useState({ inClient: false, canShare: false });
   }
 
   async function shareOmikuji() {
+    if (!ready) return;
     try {
-      if (liff.isApiAvailable("shareTargetPicker")) {
-        await liff.shareTargetPicker([
-          { type: "text", text: `本日のおみくじ：${omikuji?.title}\n${omikuji?.msg}` },
-        ]);
-      } else if (liff.isInClient()) {
-        await liff.sendMessages([
-          { type: "text", text: `本日のおみくじ：${omikuji?.title}\n${omikuji?.msg}` },
-        ]);
+      const text = `本日のおみくじ：${omikuji?.title}\n${omikuji?.msg}`;
+      if (caps.canShare) {
+        await liff.shareTargetPicker([{ type: "text", text }]);
+      } else if (caps.inClient) {
+        await liff.sendMessages([{ type: "text", text }]);
       } else {
-        alert("ブラウザではシェア非対応のことがあります。LINE内で開いてください。");
+        alert("ブラウザではシェア非対応のことがあります。LINEアプリ内で開いてください。");
       }
     } catch (e) {
       console.error(e);
-      setError("シェアに失敗しました");
+      setError("シェアに失敗しました。");
     }
   }
 
+  // --- UI ---
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900">
-      <header className="sticky top-0 border-b border-stone-200/60 backdrop-blur bg-white/70">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="font-semibold">LINE Mini App Starter</div>
-          <div className="ml-auto flex items-center gap-2 text-sm">
-            {ready ? <span className="opacity-70">LIFF Ready</span> : <span>Initializing…</span>}
-            {loggedIn ? (
-              <button onClick={logout} className="px-3 py-1 rounded bg-stone-800 text-white">Logout</button>
-            ) : (
-              <button onClick={login} className="px-3 py-1 rounded bg-green-600 text-white">LINE Login</button>
-            )}
-          </div>
+    <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a" }}>
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          background: "rgba(255,255,255,.8)",
+          backdropFilter: "blur(6px)",
+          borderBottom: "1px solid #e2e8f0",
+        }}
+      >
+        <div style={{ maxWidth: 800, margin: "0 auto", padding: "12px 16px", display: "flex", gap: 12, alignItems: "center" }}>
+          <strong>LINE Mini App Starter</strong>
+          <span style={{ marginLeft: "auto", opacity: 0.7 }}>{ready ? "LIFF Ready" : "Initializing…"}</span>
+          {loggedIn ? (
+            <button onClick={logout} style={{ padding: "6px 10px", borderRadius: 8, background: "#0f172a", color: "#fff" }}>
+              Logout
+            </button>
+          ) : (
+            <button onClick={login} style={{ padding: "6px 10px", borderRadius: 8, background: "#16a34a", color: "#fff" }}>
+              LINE Login
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 grid gap-6">
+      <main style={{ maxWidth: 800, margin: "0 auto", padding: 16, display: "grid", gap: 16 }}>
         {error && (
-          <div className="p-3 rounded border border-red-200 text-red-700 bg-red-50">{error}</div>
+          <div style={{ padding: 12, borderRadius: 8, border: "1px solid #fecaca", color: "#b91c1c", background: "#fef2f2" }}>
+            {error}
+          </div>
         )}
 
-        <section className="p-4 rounded-2xl border bg-white">
-          <h2 className="font-semibold mb-3">1) プロフィール</h2>
+        {/* 1) プロフィール */}
+        <section style={{ padding: 16, borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff" }}>
+          <h2 style={{ fontWeight: 600, marginBottom: 8 }}>1) プロフィール</h2>
           {loggedIn && profile ? (
-            <div className="flex items-center gap-3">
-              <img src={profile.pictureUrl} alt="icon" className="w-12 h-12 rounded-full" />
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {profile.pictureUrl && (
+                <img src={profile.pictureUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: "50%" }} />
+              )}
               <div>
-                <div className="font-medium">{profile.displayName}</div>
+                <div style={{ fontWeight: 600 }}>{profile.displayName}</div>
                 {profile.statusMessage && (
-                  <div className="text-sm opacity-70">{profile.statusMessage}</div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>{profile.statusMessage}</div>
                 )}
+                <div style={{ fontSize: 12, opacity: 0.7 }}>userId: {profile.userId}</div>
               </div>
             </div>
           ) : (
-            <p className="text-sm opacity-70">ログインすると表示されます</p>
+            <p style={{ fontSize: 14, opacity: 0.7 }}>ログインすると表示されます</p>
           )}
         </section>
 
-        <section className="p-4 rounded-2xl border bg-white">
-          <h2 className="font-semibold mb-3">2) おみくじ</h2>
-          <div className="flex items-center gap-3">
-            <button onClick={drawOmikuji} className="px-4 py-2 rounded-xl bg-indigo-600 text-white">引く</button>
+        {/* 2) おみくじ */}
+        <section style={{ padding: 16, borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff" }}>
+          <h2 style={{ fontWeight: 600, marginBottom: 8 }}>2) おみくじ</h2>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <button onClick={drawOmikuji} style={{ padding: "8px 14px", borderRadius: 10, background: "#4f46e5", color: "#fff" }}>
+              引く
+            </button>
             {omikuji && (
               <div>
-                <div className="text-lg font-bold">{omikuji.title}</div>
-                <div className="opacity-80">{omikuji.msg}</div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>{omikuji.title}</div>
+                <div style={{ opacity: 0.8 }}>{omikuji.msg}</div>
               </div>
             )}
           </div>
           {omikuji && (
-            <div className="mt-3">
-              <button onClick={shareOmikuji} className="px-3 py-2 rounded-xl border">LINEでシェア</button>
+            <div style={{ marginTop: 8 }}>
+              <button onClick={shareOmikuji} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #94a3b8" }}>
+                LINEでシェア
+              </button>
             </div>
           )}
         </section>
 
-        <section className="p-4 rounded-2xl border bg-white">
-          <h2 className="font-semibold mb-2">3) デバッグ</h2>
-          <pre className="text-xs whitespace-pre-wrap opacity-70">LIFF_ID: {LIFF_ID}</pre>
-          <pre className="text-xs opacity-70">inClient: {ready ? String(caps.inClient) : "—"}</pre>
-          <pre className="text-xs opacity-70">api.shareTargetPicker: {ready ? String(caps.canShare) : "—"}</pre>
-          <pre className="text-xs opacity-70">LIFF_ID(first6): {String(LIFF_ID).slice(0,6)}</pre>
+        {/* 3) デバッグ */}
+        <section style={{ padding: 16, borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff" }}>
+          <h2 style={{ fontWeight: 600, marginBottom: 8 }}>3) デバッグ</h2>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>LIFF_ID(first6): {String(LIFF_ID).slice(0, 6)}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>ready: {String(ready)}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>inClient: {ready ? String(caps.inClient) : "—"}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>api.shareTargetPicker: {ready ? String(caps.canShare) : "—"}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>userId: {profile?.userId || "—"}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>idToken: {tokens.idToken ? mask(tokens.idToken) : "—"}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>accessToken: {tokens.accessToken ? mask(tokens.accessToken) : "—"}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>claims.sub: {claims?.sub || "—"}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>claims.email: {claims?.email || "—"}</pre>
         </section>
       </main>
     </div>
