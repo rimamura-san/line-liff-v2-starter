@@ -12,7 +12,7 @@ import liff from "@line/liff";
  * 4) デプロイ
  */
 
-const LIFF_ID = import.meta?.env?.VITE_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID || "YOUR_LIFF_ID";
+const LIFF_ID = import.meta?.env?.VITE_LIFF_ID || 2008303223-rXdkgozK
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -21,11 +21,19 @@ export default function App() {
   const [omikuji, setOmikuji] = useState(null);
   const [error, setError] = useState("");
 
+const [ready, setReady] = useState(false);
+const [caps, setCaps] = useState({ inClient: false, canShare: false });
+  
   useEffect(() => {
     (async () => {
       try {
+        console.log("LIFF init start:", LIFF_ID);
         await liff.init({ liffId: LIFF_ID });
         setReady(true);
+        setCaps({
+          inClient: liff.isInClient(),
+          canShare: liff.isApiAvailable("shareTargetPicker"),
+        });
         if (liff.isLoggedIn()) {
           setLoggedIn(true);
           await fetchProfile();
@@ -149,8 +157,9 @@ export default function App() {
         <section className="p-4 rounded-2xl border bg-white">
           <h2 className="font-semibold mb-2">3) デバッグ</h2>
           <pre className="text-xs whitespace-pre-wrap opacity-70">LIFF_ID: {LIFF_ID}</pre>
-          <pre className="text-xs whitespace-pre-wrap opacity-70">inClient: {String(liff.isInClient?.() || false)}</pre>
-          <pre className="text-xs whitespace-pre-wrap opacity-70">api.shareTargetPicker: {String(liff.isApiAvailable?.("shareTargetPicker") || false)}</pre>
+          <pre className="text-xs opacity-70">inClient: {ready ? String(caps.inClient) : "—"}</pre>
+          <pre className="text-xs opacity-70">api.shareTargetPicker: {ready ? String(caps.canShare) : "—"}</pre>
+          <pre className="text-xs opacity-70">LIFF_ID(first6): {String(LIFF_ID).slice(0,6)}</pre>
         </section>
       </main>
     </div>
