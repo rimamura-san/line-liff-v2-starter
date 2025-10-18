@@ -1,11 +1,10 @@
-// src/react/src/App.jsx
 import React, { useEffect, useState } from "react";
 import liff from "@line/liff";
 
-// ▼ Viteは VITE_* だけが注入されます
-const LIFF_ID = import.meta.env.VITE_LIFF_ID || 2008303223-rXdkgozK;
+// Viteは VITE_* だけ注入
+const LIFF_ID = import.meta.env.VITE_LIFF_ID || "YOUR_LIFF_ID";
 
-// --- helpers ---
+// utils
 const mask = (s) => (s ? `${s.slice(0, 8)}…${s.slice(-6)}` : "");
 function parseJwtSafe(t) {
   try {
@@ -24,9 +23,10 @@ function parseJwtSafe(t) {
 }
 
 export default function App() {
-  // --- state（重複宣言しないでこの1ブロックだけ） ---
+  // --- state（このブロックだけに統一） ---
   const [ready, setReady] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [hasSession, setHasSession] = useState(false); // LIFF的にはログイン済みか（自動でtrueになることがある）
+  const [loggedIn, setLoggedIn] = useState(false);     // ← ユーザーが「続ける/ログイン」押下でtrueにする（明示同意）
   const [profile, setProfile] = useState(null);
   const [omikuji, setOmikuji] = useState(null);
   const [error, setError] = useState("");
@@ -40,37 +40,40 @@ export default function App() {
       try {
         console.log("LIFF init start:", LIFF_ID);
         await liff.init({ liffId: LIFF_ID });
-
-        // init 後にだけ liff.* を触る
         setReady(true);
+
+        // init後にだけ触る
+        const session = liff.isLoggedIn();
+        setHasSession(session);
         setCaps({
           inClient: liff.isInClient(),
           canShare: liff.isApiAvailable("shareTargetPicker"),
         });
 
-        if (liff.isLoggedIn()) {
-          setLoggedIn(true);
-
-          // トークン類
-          const idt = liff.getIDToken() || "";
-          const at = liff.getAccessToken() || "";
-          setTokens({ idToken: idt, accessToken: at });
-          setClaims(idt ? parseJwtSafe(idt) : null);
-
-          await fetchProfile();
-        }
+        // ここでは loggedIn を自動で true にしない！（明示操作待ち）
+        // session が true なら「続ける」ボタンを表示して、押されたらプロフィール取得する運用にする
       } catch (e) {
         console.error("LIFF init error:", e);
         setError("LIFFの初期化に失敗しました。LIFF IDと公開URLを確認してください。");
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- actions ---
-  const login = () => {
+  const proceedWithExistingSession = async () => {
+    // 既存セッションを“明示的に許可”するボタン
     try {
-      if (!liff.isLoggedIn()) liff.login();
+      await afterLoginFlow();
+    } catch (e) {
+      console.error(e);
+      setError("続行時にエラーが発生しました。");
+    }
+  };
+
+  const startLogin = () => {
+    try {
+      // まだセッションがない場合のみリダイレクトログイン
+      if (!hasSession) liff.login();
     } catch (e) {
       console.error(e);
       setError("ログインに失敗しました。");
@@ -79,28 +82,36 @@ export default function App() {
 
   const logout = () => {
     try {
-      if (liff.isLoggedIn()) {
+      if (hasSession) {
         liff.logout();
-        setLoggedIn(false);
-        setProfile(null);
-        setTokens({ idToken: "", accessToken: "" });
-        setClaims(null);
-        window.location.reload();
       }
     } catch (e) {
       console.error(e);
-      setError("ログアウトに失敗しました。");
+    } finally {
+      // 画面状態を初期化（自動再ログインに見えないよう consent もリセット）
+      setHasSession(false);
+      setLoggedIn(false);
+      setProfile(null);
+      setTokens({ idToken: "", accessToken: "" });
+      setClaims(null);
+      setOmikuji(null);
+      // 必要ならリロード（LINE内でセッションが残像になる場合に）
+      // window.location.replace(window.location.origin + window.location.pathname);
     }
   };
 
-  async function fetchProfile() {
-    try {
-      const p = await liff.getProfile();
-      setProfile(p);
-    } catch (e) {
-      console.error(e);
-      setError("プロフィール取得に失敗しました。");
-    }
+  async function afterLoginFlow() {
+    // 明示操作後にだけログイン完了扱いにして情報を取得
+    const idt = liff.getIDToken() || "";
+    const at = liff.getAccessToken() || "";
+    setTokens({ idToken: idt, accessToken: at });
+    setClaims(idt ? parseJwtSafe(idt) : null);
+
+    const p = await liff.getProfile();
+    setProfile(p);
+
+    setHasSession(true);
+    setLoggedIn(true);
   }
 
   function drawOmikuji() {
@@ -116,9 +127,9 @@ export default function App() {
   }
 
   async function shareOmikuji() {
-    if (!ready) return;
+    if (!ready || !loggedIn || !omikuji) return;
     try {
-      const text = `本日のおみくじ：${omikuji?.title}\n${omikuji?.msg}`;
+      const text = `本日のおみくじ：${omikuji.title}\n${omikuji.msg}`;
       if (caps.canShare) {
         await liff.shareTargetPicker([{ type: "text", text }]);
       } else if (caps.inClient) {
@@ -133,28 +144,45 @@ export default function App() {
   }
 
   // --- UI ---
+  const Btn = (props) => (
+    <button
+      {...props}
+      style={{
+        padding: "8px 14px",
+        borderRadius: 10,
+        background: props.disabled ? "#94a3b8" : "#4f46e5",
+        color: "#fff",
+        border: "none",
+        opacity: props.disabled ? 0.6 : 1,
+        cursor: props.disabled ? "not-allowed" : "pointer",
+        ...(props.style || {}),
+      }}
+    />
+  );
+
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a" }}>
       <header
         style={{
-          position: "sticky",
-          top: 0,
-          background: "rgba(255,255,255,.8)",
-          backdropFilter: "blur(6px)",
-          borderBottom: "1px solid #e2e8f0",
+          position: "sticky", top: 0, background: "rgba(255,255,255,.8)",
+          backdropFilter: "blur(6px)", borderBottom: "1px solid #e2e8f0",
         }}
       >
         <div style={{ maxWidth: 800, margin: "0 auto", padding: "12px 16px", display: "flex", gap: 12, alignItems: "center" }}>
           <strong>LINE Mini App Starter</strong>
           <span style={{ marginLeft: "auto", opacity: 0.7 }}>{ready ? "LIFF Ready" : "Initializing…"}</span>
-          {loggedIn ? (
-            <button onClick={logout} style={{ padding: "6px 10px", borderRadius: 8, background: "#0f172a", color: "#fff" }}>
-              Logout
-            </button>
+
+          {/* 右上のアクション（状態に応じて） */}
+          {!ready ? null : loggedIn ? (
+            <Btn onClick={logout} style={{ background: "#0f172a" }}>Logout</Btn>
+          ) : hasSession ? (
+            // 既存セッションはあるが、明示操作待ち
+            <>
+              <Btn onClick={proceedWithExistingSession}>続ける</Btn>
+              <Btn onClick={logout} style={{ background: "#0f172a" }}>Logout</Btn>
+            </>
           ) : (
-            <button onClick={login} style={{ padding: "6px 10px", borderRadius: 8, background: "#16a34a", color: "#fff" }}>
-              LINE Login
-            </button>
+            <Btn onClick={startLogin} style={{ background: "#16a34a" }}>LINE Login</Btn>
           )}
         </div>
       </header>
@@ -171,29 +199,26 @@ export default function App() {
           <h2 style={{ fontWeight: 600, marginBottom: 8 }}>1) プロフィール</h2>
           {loggedIn && profile ? (
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {profile.pictureUrl && (
-                <img src={profile.pictureUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: "50%" }} />
-              )}
+              {profile.pictureUrl && <img src={profile.pictureUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: "50%" }} />}
               <div>
                 <div style={{ fontWeight: 600 }}>{profile.displayName}</div>
-                {profile.statusMessage && (
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>{profile.statusMessage}</div>
-                )}
+                {profile.statusMessage && <div style={{ fontSize: 12, opacity: 0.7 }}>{profile.statusMessage}</div>}
                 <div style={{ fontSize: 12, opacity: 0.7 }}>userId: {profile.userId}</div>
               </div>
             </div>
           ) : (
-            <p style={{ fontSize: 14, opacity: 0.7 }}>ログインすると表示されます</p>
+            <p style={{ fontSize: 14, opacity: 0.7 }}>
+              {hasSession ? "「続ける」を押すとプロフィールを表示します" : "ログインすると表示されます"}
+            </p>
           )}
         </section>
 
-        {/* 2) おみくじ */}
+        {/* 2) おみくじ（ログイン完了まで無効化） */}
         <section style={{ padding: 16, borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff" }}>
           <h2 style={{ fontWeight: 600, marginBottom: 8 }}>2) おみくじ</h2>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <button onClick={drawOmikuji} style={{ padding: "8px 14px", borderRadius: 10, background: "#4f46e5", color: "#fff" }}>
-              引く
-            </button>
+            <Btn onClick={drawOmikuji} disabled={!loggedIn}>引く</Btn>
+            {!loggedIn && <span style={{ fontSize: 12, opacity: 0.7 }}>※ ログイン後に引けます</span>}
             {omikuji && (
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>{omikuji.title}</div>
@@ -203,9 +228,9 @@ export default function App() {
           </div>
           {omikuji && (
             <div style={{ marginTop: 8 }}>
-              <button onClick={shareOmikuji} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #94a3b8" }}>
+              <Btn onClick={shareOmikuji} disabled={!loggedIn} style={{ background: "#334155" }}>
                 LINEでシェア
-              </button>
+              </Btn>
             </div>
           )}
         </section>
@@ -215,6 +240,8 @@ export default function App() {
           <h2 style={{ fontWeight: 600, marginBottom: 8 }}>3) デバッグ</h2>
           <pre style={{ fontSize: 12, opacity: 0.7 }}>LIFF_ID(first6): {String(LIFF_ID).slice(0, 6)}</pre>
           <pre style={{ fontSize: 12, opacity: 0.7 }}>ready: {String(ready)}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>hasSession(liff.isLoggedIn): {String(hasSession)}</pre>
+          <pre style={{ fontSize: 12, opacity: 0.7 }}>loggedIn(consent): {String(loggedIn)}</pre>
           <pre style={{ fontSize: 12, opacity: 0.7 }}>inClient: {ready ? String(caps.inClient) : "—"}</pre>
           <pre style={{ fontSize: 12, opacity: 0.7 }}>api.shareTargetPicker: {ready ? String(caps.canShare) : "—"}</pre>
           <pre style={{ fontSize: 12, opacity: 0.7 }}>userId: {profile?.userId || "—"}</pre>
