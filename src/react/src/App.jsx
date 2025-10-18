@@ -15,7 +15,7 @@ import liff from "@line/liff";
 const LIFF_ID = import.meta?.env?.VITE_LIFF_ID || 2008303223-rXdkgozK
 
 export default function App() {
-  const [ready, setReady] = useState(false);
+//   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [profile, setProfile] = useState(null);
   const [omikuji, setOmikuji] = useState(null);
