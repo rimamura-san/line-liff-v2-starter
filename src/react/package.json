@@ -23,7 +23,8 @@
     "vite": "^7.1.10",
     "@vitejs/plugin-react": "^5.0.4",
     "@types/react": "^19.1.16",
-    "@types/react-dom": "^19.1.9"
+    "@types/react-dom": "^19.1.9",
+    "gh-pages": "^6.2.0"
   },
   "homepage": "https://rimamura-san.github.io/line-liff-v2-starter/"
 }
