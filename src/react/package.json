@@ -26,3 +26,12 @@
     "vite": "^7.1.7"
   }
 }
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "homepage": "https://rimamura-san.github.io/line-liff-v2-starter/"
+}
