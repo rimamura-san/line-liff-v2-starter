@@ -81,7 +81,7 @@ export default function App() {
       <h1 style={{ color: "#b45309" }}>🐾 ラッキー猫占い 🐾</h1>
 
       <p style={{ marginTop: 8, color: "#555" }}>
-        このアプリは <strong>shareTargetPicker()</strong> の挙動をテストするためのデモです。
+        このアプリは <strong>liff.shareTargetPicker()</strong> の挙動をテストするためのデモです。
       </p>
 
       {ready ? (
@@ -129,7 +129,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                shareTargetPicker() でシェアする 🐾
+                liff.shareTargetPicker() でシェアする 🐾
               </button>
             </div>
           )}
