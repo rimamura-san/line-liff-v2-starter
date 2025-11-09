@@ -6,9 +6,30 @@ export default function App() {
   const [error, setError] = useState("");
   const [cat, setCat] = useState(null);
 
-  // 猫データ
-  const colors = ["三毛猫", "黒猫", "白猫", "茶トラ", "サバトラ", "キジトラ", "グレー猫"];
-  const breeds = ["スコティッシュフォールド", "シャム猫", "マンチカン", "アメリカンショートヘア", "ノルウェージャンフォレストキャット", "ベンガル", "雑種"];
+  // 猫データ（特徴＋猫種）
+  const features = [
+    "太っちょの",
+    "人なつこい",
+    "おっとりした",
+    "ちょっと気まぐれな",
+    "食いしん坊な",
+    "すばしっこい",
+    "昼寝が大好きな",
+  ];
+
+  const breeds = [
+    "スコティッシュフォールド",
+    "シャム猫",
+    "マンチカン",
+    "アメリカンショートヘア",
+    "ノルウェージャンフォレストキャット",
+    "ベンガル",
+    "三毛猫",
+    "サバトラ",
+    "茶トラ",
+    "黒猫",
+    "白猫",
+  ];
 
   useEffect(() => {
     (async () => {
@@ -23,9 +44,9 @@ export default function App() {
 
   // 占いボタン押下
   const draw = () => {
-    const color = colors[Math.floor(Math.random() * colors.length)];
+    const feature = features[Math.floor(Math.random() * features.length)];
     const breed = breeds[Math.floor(Math.random() * breeds.length)];
-    setCat({ color, breed });
+    setCat({ feature, breed });
   };
 
   // シェアボタン押下
@@ -36,11 +57,11 @@ export default function App() {
         await liff.shareTargetPicker([
           {
             type: "text",
-            text: `🐈‍⬛ ラッキー猫占い 🐾\n今日のあなたのラッキー猫は…\n${cat.color} × ${cat.breed} だにゃ！✨\nにゃんとも良い一日を！`,
+            text: `🐈‍⬛ ラッキー猫占い 🐾\n今日のあなたのラッキー猫は…\n${cat.feature} ${cat.breed} だにゃ！✨\n#shareTargetPicker() テスト`,
           },
         ]);
       } else {
-        alert("この環境では shareTargetPicker は使えん。LINEアプリ内で開け。");
+        alert("この環境では shareTargetPicker は使えにゃい。LINEアプリ内で開いて欲しいにょ。");
       }
     } catch (e) {
       setError("share failed: " + e);
@@ -59,6 +80,10 @@ export default function App() {
     >
       <h1 style={{ color: "#b45309" }}>🐾 ラッキー猫占い 🐾</h1>
 
+      <p style={{ marginTop: 8, color: "#555" }}>
+        このアプリは <strong>shareTargetPicker()</strong> の挙動をテストするためのデモです。
+      </p>
+
       {ready ? (
         <>
           <button
@@ -71,6 +96,7 @@ export default function App() {
               borderRadius: 8,
               fontSize: 16,
               cursor: "pointer",
+              marginTop: 16,
             }}
           >
             占う！
@@ -88,21 +114,22 @@ export default function App() {
             >
               <p style={{ fontSize: 20 }}>今日のラッキー猫は…</p>
               <h2 style={{ fontSize: 26, color: "#b45309" }}>
-                {cat.color} × {cat.breed}
+                {cat.feature} {cat.breed}
               </h2>
               <button
                 onClick={share}
                 style={{
                   marginTop: 16,
-                  background: "#84cc16",
+                  background: "#2563eb",
                   color: "white",
                   border: "none",
-                  padding: "8px 16px",
+                  padding: "10px 18px",
                   borderRadius: 8,
+                  fontSize: 15,
                   cursor: "pointer",
                 }}
               >
-                この猫をシェアする🐾
+                shareTargetPicker() でシェアする 🐾
               </button>
             </div>
           )}
@@ -114,3 +141,4 @@ export default function App() {
     </main>
   );
 }
+
