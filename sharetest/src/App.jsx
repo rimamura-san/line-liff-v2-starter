@@ -1,0 +1,116 @@
+import React, { useEffect, useState } from "react";
+import liff from "@line/liff";
+
+export default function App() {
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
+  const [cat, setCat] = useState(null);
+
+  // 猫データ
+  const colors = ["三毛猫", "黒猫", "白猫", "茶トラ", "サバトラ", "キジトラ", "グレー猫"];
+  const breeds = ["スコティッシュフォールド", "シャム猫", "マンチカン", "アメリカンショートヘア", "ノルウェージャンフォレストキャット", "ベンガル", "雑種"];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await liff.init({ liffId: import.meta.env.VITE_LIFF_ID });
+        setReady(true);
+      } catch (e) {
+        setError("LIFF init error: " + e);
+      }
+    })();
+  }, []);
+
+  // 占いボタン押下
+  const draw = () => {
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const breed = breeds[Math.floor(Math.random() * breeds.length)];
+    setCat({ color, breed });
+  };
+
+  // シェアボタン押下
+  const share = async () => {
+    if (!cat) return alert("まずは占ってにゃ🐾");
+    try {
+      if (liff.isApiAvailable("shareTargetPicker")) {
+        await liff.shareTargetPicker([
+          {
+            type: "text",
+            text: `🐈‍⬛ ラッキー猫占い 🐾\n今日のあなたのラッキー猫は…\n${cat.color} × ${cat.breed} だにゃ！✨\nにゃんとも良い一日を！`,
+          },
+        ]);
+      } else {
+        alert("この環境では shareTargetPicker は使えん。LINEアプリ内で開け。");
+      }
+    } catch (e) {
+      setError("share failed: " + e);
+    }
+  };
+
+  return (
+    <main
+      style={{
+        padding: 16,
+        textAlign: "center",
+        fontFamily: "system-ui, sans-serif",
+        backgroundColor: "#fff8f0",
+        minHeight: "100vh",
+      }}
+    >
+      <h1 style={{ color: "#b45309" }}>🐾 ラッキー猫占い 🐾</h1>
+
+      {ready ? (
+        <>
+          <button
+            onClick={draw}
+            style={{
+              background: "#f59e0b",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: 8,
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            占う！
+          </button>
+
+          {cat && (
+            <div
+              style={{
+                marginTop: 24,
+                padding: 16,
+                background: "white",
+                borderRadius: 12,
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+            >
+              <p style={{ fontSize: 20 }}>今日のラッキー猫は…</p>
+              <h2 style={{ fontSize: 26, color: "#b45309" }}>
+                {cat.color} × {cat.breed}
+              </h2>
+              <button
+                onClick={share}
+                style={{
+                  marginTop: 16,
+                  background: "#84cc16",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
+                この猫をシェアする🐾
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <p>LIFF 初期化中…</p>
+      )}
+      {error && <p style={{ color: "crimson" }}>{error}</p>}
+    </main>
+  );
+}
