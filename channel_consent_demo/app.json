@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "name": "channel-consent-demo",
+  "requestExternalConsent": true,
+  "permissions": [
+    "openid",
+    "profile"
+  ]
+}
+
