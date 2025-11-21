@@ -1,32 +1,55 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Channel Consent Demo</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Channel Consent Demo</title>
 
-    <!-- 文字を大きく -->
-    <style>
-      body { font-size: 20px; line-height: 1.6; padding: 16px; }
-      pre { font-size: 18px; }
-      button { font-size: 20px; padding: 10px 16px; }
-    </style>
-    <script type="module" crossorigin src="/line-liff-v2-starter/channel_consent_demo/assets/index-g89Onr0v.js"></script>
-  </head>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 18px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      overflow-x: auto;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      background: #e0e0e0;
+      margin-top: 20px;
+    }
+  </style>
+  <script type="module" crossorigin src="/line-liff-v2-starter/channel_consent_demo/assets/index-Cs3t-6WJ.js"></script>
+</head>
 
-  <body>
-    <h1>チャネル同意デモ（Vite版）</h1>
+<body>
+  <h1>チャネル同意の簡略化デモ</h1>
 
-    <div id="debug">
-      <pre id="log">profile取得失敗（まだ profile 同意なし）</pre>
-    </div>
+  <pre id="log">profile取得失敗（まだ profile 同意なし）</pre>
+  <div id="greet" style="margin-top: 20px; font-size: 22px; font-weight: bold;"></div>
 
-    <button id="btn-request">liff.permission.requestAll()</button>
+  <button id="btn-request">liff.permission.requestAll()</button>
 
-    <!-- ★ 必ず先に SDK ★ -->
-    <script src="https://static.line-scdn.net/liff/edge/2.21.1/sdk.js"></script>
+  <!-- SDK（必ず最初） -->
+  <script src="https://static.line-scdn.net/liff/edge/2.21.1/sdk.js"></script>
 
-    <!-- ★ その後 main.js ★ -->
-  </body>
+  <!-- main.js 読み込み。※ここだけ絶対に "./" にする！ -->
+</body>
 </html>
 
