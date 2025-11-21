@@ -2,19 +2,30 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Channel Consent Demo</title>
-    <script src="https://static.line-scdn.net/liff/edge/2.21.1/sdk.js"></script>
+
+    <!-- 文字を大きく -->
+    <style>
+      body { font-size: 20px; line-height: 1.6; padding: 16px; }
+      pre { font-size: 18px; }
+      button { font-size: 20px; padding: 10px 16px; }
+    </style>
   </head>
+
   <body>
-    <h1>チャネル同意デモ (Vite版)</h1>
+    <h1>チャネル同意デモ（Vite版）</h1>
 
     <div id="debug">
-      <h3>デバッグログ</h3>
       <pre id="log">profile取得失敗（まだ profile 同意なし）</pre>
     </div>
 
     <button id="btn-request">liff.permission.requestAll()</button>
 
+    <!-- ★ 必ず先に SDK ★ -->
+    <script src="https://static.line-scdn.net/liff/edge/2.21.1/sdk.js"></script>
+
+    <!-- ★ その後 main.js ★ -->
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
