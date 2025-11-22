@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Channel Consent Demo</title>
+</head>
+<body>
+  <h1>チャネル同意の簡略化デモ</h1>
+
+  <pre id="log">profile取得失敗（まだ profile 同意なし）</pre>
+  <div id="greet" style="margin-top:16px;font-size:20px;font-weight:bold;"></div>
+  <button id="btn-request" style="padding:12px 20px;font-size:18px;">追加同意</button>
+
+  <!-- 必ず最初に SDK を読み込む -->
+  <script src="https://static.line-scdn.net/liff/edge/2.21.1/sdk.js"></script>
+
+  <!-- main.js を最後に読み込む（Vite不要・変換なし） -->
+  <script src="./main.js"></script>
+</body>
+</html>
+
