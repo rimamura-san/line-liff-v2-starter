@@ -1,0 +1,9 @@
+cat > app.json << 'EOF'
+{
+  "name": "channel-consent-demo",
+  "version": "1.0.0",
+  "requestExternalConsent": true,
+  "permissions": ["openid", "profile"]
+}
+EOF
+
