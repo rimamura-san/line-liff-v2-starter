@@ -1,8 +1,7 @@
-cat > main.js << 'EOF'
 // デバッグ表示
 const logEl = document.getElementById("log");
 function log(msg) {
-  logEl.textContent += "\\n" + msg;
+  logEl.textContent += "\n" + msg;
 }
 
 // 挨拶表示
@@ -13,7 +12,7 @@ function greet(name) {
 async function initLiff() {
   try {
     await liff.init({
-      liffId: "2008493036-jGpNZplP"
+      liffId: "YOUR_LIFF_ID"  // ← あなたの LIFF ID に置き換え
     });
 
     log("LIFF init 完了");
@@ -49,5 +48,4 @@ document.getElementById("btn-request").addEventListener("click", async () => {
 });
 
 initLiff();
-EOF
 
