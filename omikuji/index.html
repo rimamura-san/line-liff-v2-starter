@@ -1,13 +1,81 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>react</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Target Picker Test</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
+        button { padding: 15px 30px; font-size: 16px; background-color: #06C755; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:disabled { background-color: #ccc; }
+        #status { margin-top: 20px; color: #555; }
+    </style>
+</head>
+<body>
+
+    <h2>シェアターゲットピッカー テスト</h2>
+    
+    <button id="shareBtn" disabled>メッセージを送信する</button>
+    
+    <div id="status">LIFFを初期化中...</div>
+
+    <script>
+        // 1. LIFF IDを入力してください
+        const MY_LIFF_ID = 'YOUR_LIFF_ID'; 
+
+        async function main() {
+            const statusTag = document.getElementById('status');
+            const shareBtn = document.getElementById('shareBtn');
+
+            try {
+                // 2. LIFFの初期化
+                await liff.init({ liffId: MY_LIFF_ID });
+
+                if (!liff.isLoggedIn()) {
+                    statusTag.innerText = 'ログインしていません。';
+                    liff.login();
+                    return;
+                }
+
+                statusTag.innerText = '初期化完了。準備OKです。';
+                shareBtn.disabled = false;
+
+                // 3. ボタンクリック時の処理
+                shareBtn.addEventListener('click', async () => {
+                    // 権限の確認
+                    if (!liff.isApiAvailable('shareTargetPicker')) {
+                        alert('この環境ではシェアターゲットピッカーは利用できません。');
+                        return;
+                    }
+
+                    try {
+                        const res = await liff.shareTargetPicker([
+                            {
+                                "type": "text",
+                                "text": "これはシェアターゲットピッカーのテスト送信です！"
+                            }
+                        ]);
+
+                        if (res) {
+                            statusTag.innerText = '送信成功！';
+                            console.log('TargetPicker Result:', res);
+                        } else {
+                            statusTag.innerText = '送信がキャンセルされました。';
+                        }
+                    } catch (error) {
+                        statusTag.innerText = '送信エラーが発生しました。';
+                        console.error(error);
+                    }
+                });
+
+            } catch (err) {
+                statusTag.innerText = '初期化失敗: ' + err;
+                console.error(err);
+            }
+        }
+
+        main();
+    </script>
+</body>
 </html>
