@@ -14,7 +14,7 @@
 </head>
 <body>
 
-    <h2>シェアターゲットピッカーテスト</h2>
+    <h2>シェアターゲットピッカー テスト</h2>
     
     <button id="shareBtn" disabled>メッセージを送信する</button>
     
@@ -30,7 +30,8 @@
 
             try {
                 // 2. LIFFの初期化
-                await liff.init({liffId:2008303225-NBL8K5qW});
+                // await liff.init({liffId:2008303225-NBL8K5qW});
+                await liff.init({ liffId: MY_LIFF_ID });
 
                 if (!liff.isLoggedIn()) {
                     statusTag.innerText = 'ログインしていません。';
