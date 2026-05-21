@@ -12,7 +12,7 @@ function greet(name) {
 async function initLiff() {
   try {
     await liff.init({
-      liffId: "YOUR_LIFF_ID"  // ← あなたの LIFF ID に置き換え
+      liffId: "2008493036-jGpNZplP"  // ← あなたの LIFF ID に置き換え
     });
 
     log("LIFF init 完了");
