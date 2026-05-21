@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import liff from "@line/liff";
 
 // Viteは VITE_* だけ注入
-const LIFF_ID = import.meta.env.VITE_LIFF_ID || "YOUR_LIFF_ID";
+const LIFF_ID = import.meta.env.VITE_LIFF_ID || "2008303223-rXdkgozK";
 
 // utils
 const mask = (s) => (s ? `${s.slice(0, 8)}…${s.slice(-6)}` : "");
